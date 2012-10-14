@@ -6,6 +6,7 @@ class Pyceptron:
 		self._points = []
 		self._weights = [0] * (dimension + 1)
 		self._steps = 0
+		self._ein = 0.0
 
 
 	def populate(self, points=None):
@@ -38,6 +39,10 @@ class Pyceptron:
 		return self._steps
 
 
+	def ein(self):
+		return self._ein
+
+
 	def _update(self, point, direction):
 		point = [1.0] + list(point)
 		for i in range(len(point)):
@@ -63,7 +68,7 @@ class Pyceptron:
 		return sign(dot(self._weights, point))
 
 
-	def train(self, steps=None):
+	def train(self, steps=None, ein=None):
 
 		while True:
 
@@ -74,10 +79,23 @@ class Pyceptron:
 			self._steps += 1
 
 			target = None
+			error = 0
 
 			for point in self._points:
 				if point[1] != self._classify(point[0]):
-					self._update(point[0], point[1])
-					break
-			else:
+					error += 1
+					if target == None:
+							target = point
+					if ein == None:
+						break
+
+			self._ein = float(error) / len(self._points)
+
+			if ein != None:
+				if self._ein <= ein:
+					return True
+
+			if target == None:
 				return True
+
+			self._update(target[0], target[1])
