@@ -6,7 +6,6 @@ class Pyceptron:
 		self._points = []
 		self._weights = [0] * (dimension + 1)
 		self._steps = 0
-		self._ein = 0.0
 
 
 	def populate(self, points=None):
@@ -39,8 +38,21 @@ class Pyceptron:
 		return self._steps
 
 
-	def ein(self):
-		return self._ein
+	def _ein(self, weights):
+		errors = 0
+		for point in self._points:
+			if point[1] != self._classify(point[0], weights):
+				errors += 1
+		return float(errors) / len(self._points)
+
+	
+	def _pick(self, weights=None):
+		if weights == None:
+			weights = self._weights
+		for point in self._points:
+			if point[1] != self._classify(point[0], weights):
+				return point
+		return None
 
 
 	def _update(self, point, direction):
@@ -49,7 +61,7 @@ class Pyceptron:
 			self._weights[i] += direction * point[i]
 
 
-	def _classify(self, point):
+	def _classify(self, point, weights):
 		point = [1] + list(point)
 
 		def dot(u, v):
@@ -65,37 +77,45 @@ class Pyceptron:
 				return -1
 			return 0
 
-		return sign(dot(self._weights, point))
+		return sign(dot(weights, point))
 
 
-	def train(self, steps=None, ein=None):
+	def train(self, steps=None, ein=None, pocket=False):
+
+		wpocket = [x for x in self._weights]
 
 		while True:
 
 			if steps != None:
 				if steps == 0:
+					if pocket == True:
+						self._weights = wpocket
 					return False
 				steps -= 1
 			self._steps += 1
 
-			target = None
-			error = 0
-
-			for point in self._points:
-				if point[1] != self._classify(point[0]):
-					error += 1
-					if target == None:
-							target = point
-					if ein == None:
-						break
-
-			self._ein = float(error) / len(self._points)
-
-			if ein != None:
-				if self._ein <= ein:
-					return True
+			target = self._pick()
 
 			if target == None:
+				if pocket == True:
+					self._weights = wpocket
 				return True
 
 			self._update(target[0], target[1])
+
+			ep = 1
+			ew = 1
+
+			if ein != None or pocket == True:
+				ew = self._ein(self._weights)
+
+			if pocket == True:
+				ep = self._ein(wpocket)
+				if ew < ep:
+					wpocket = [x for x in self._weights]
+
+			if ein != None:
+				if ew <= ein:
+					if pocket == True:
+						self._weights = wpocket
+					return True
